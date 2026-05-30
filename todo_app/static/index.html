@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TODOS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --glass-bg: rgba(255, 255, 255, 0.12);
+      --glass-bg-strong: rgba(255, 255, 255, 0.18);
+      --glass-border: rgba(255, 255, 255, 0.25);
+      --glass-border-bright: rgba(255, 255, 255, 0.45);
+      --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255,255,255,0.3);
+      --glass-shadow-hover: 0 16px 48px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255,255,255,0.4);
+      --ink: #ffffff;
+      --ink-muted: rgba(255, 255, 255, 0.65);
+      --accent: #a8edea;
+      --accent-glow: rgba(168, 237, 234, 0.4);
+      --done: #86efac;
+      --done-muted: rgba(134, 239, 172, 0.5);
+      --blur: blur(20px);
+    }
+
+    body {
+      font-family: 'DM Mono', monospace;
+      min-height: 100vh;
+      padding: 48px 20px 100px;
+      position: relative;
+      overflow-x: hidden;
+      background: #0f0c29;
+      color: var(--ink);
+    }
+
+    /* Animated gradient background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg,
+        #0f0c29 0%,
+        #302b63 35%,
+        #24243e 65%,
+        #0f0c29 100%);
+      z-index: -3;
+    }
+
+    /* Floating orbs */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 600px 500px at 20% 20%, rgba(168, 237, 234, 0.18) 0%, transparent 70%),
+        radial-gradient(ellipse 500px 600px at 80% 70%, rgba(199, 146, 234, 0.2) 0%, transparent 70%),
+        radial-gradient(ellipse 400px 400px at 50% 50%, rgba(255, 154, 158, 0.12) 0%, transparent 70%);
+      z-index: -2;
+      animation: driftOrbs 18s ease-in-out infinite alternate;
+    }
+
+    @keyframes driftOrbs {
+      0%   { transform: scale(1) translate(0, 0); }
+      33%  { transform: scale(1.05) translate(20px, -15px); }
+      66%  { transform: scale(0.97) translate(-15px, 20px); }
+      100% { transform: scale(1.03) translate(10px, -10px); }
+    }
+
+    .container {
+      max-width: 640px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Glass mixin via reusable class */
+    .glass {
+      background: var(--glass-bg);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--glass-shadow);
+    }
+
+    header {
+      margin-bottom: 40px;
+    }
+
+    .eyebrow {
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 6px;
+      text-shadow: 0 0 12px var(--accent-glow);
+    }
+
+    h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(52px, 10vw, 80px);
+      line-height: 0.95;
+      letter-spacing: -0.02em;
+      color: #fff;
+      text-shadow: 0 2px 24px rgba(168,237,234,0.25);
+    }
+
+    h1 em {
+      color: var(--accent);
+      font-style: italic;
+      text-shadow: 0 0 24px var(--accent-glow), 0 2px 16px rgba(168,237,234,0.4);
+    }
+
+    .stats-bar {
+      display: flex;
+      gap: 24px;
+      margin-top: 16px;
+      font-size: 11px;
+      color: var(--ink-muted);
+      letter-spacing: 0.05em;
+    }
+
+    .stats-bar span b {
+      color: #fff;
+      font-weight: 500;
+    }
+
+    /* Input area */
+    .add-form {
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 28px;
+      background: var(--glass-bg-strong);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      border: 1px solid var(--glass-border-bright);
+      box-shadow: var(--glass-shadow), inset 0 0 40px rgba(168,237,234,0.04);
+    }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      border: 1px solid var(--glass-border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      background: rgba(0, 0, 0, 0.28);
+      color: #fff;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--accent);
+      background: rgba(255,255,255,0.13);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    input[type="text"]::placeholder {
+      color: var(--ink-muted);
+      font-style: italic;
+    }
+
+    #desc-input {
+      margin-top: 10px;
+      width: 100%;
+      font-size: 12px;
+    }
+
+    .btn {
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      letter-spacing: 0.05em;
+      padding: 10px 18px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+      border: 1px solid;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, rgba(168,237,234,0.3), rgba(168,237,234,0.15));
+      border-color: var(--accent);
+      color: var(--accent);
+      text-shadow: 0 0 8px var(--accent-glow);
+      box-shadow: 0 0 20px rgba(168,237,234,0.15);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, rgba(168,237,234,0.45), rgba(168,237,234,0.25));
+      box-shadow: 0 0 32px rgba(168,237,234,0.35);
+      transform: translateY(-1px);
+    }
+
+    .btn-ghost {
+      background: var(--glass-bg);
+      border-color: var(--glass-border);
+      color: var(--ink-muted);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .btn-ghost:hover {
+      border-color: rgba(255,100,100,0.6);
+      color: #ff9999;
+      box-shadow: 0 0 16px rgba(255,100,100,0.2);
+    }
+
+    /* Filter tabs */
+    .filters {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 20px;
+      padding: 6px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.07);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border);
+    }
+
+    .filter-btn {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 7px 16px;
+      background: none;
+      border: 1px solid transparent;
+      border-radius: 9px;
+      cursor: pointer;
+      color: var(--ink-muted);
+      transition: all 0.2s;
+      flex: 1;
+    }
+
+    .filter-btn.active {
+      color: var(--accent);
+      background: rgba(168,237,234,0.12);
+      border-color: rgba(168,237,234,0.3);
+      box-shadow: 0 0 16px rgba(168,237,234,0.15);
+      text-shadow: 0 0 8px var(--accent-glow);
+    }
+
+    .filter-btn:hover:not(.active) {
+      color: #fff;
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    /* Todo list */
+    .todo-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .todo-item {
+      border-radius: 14px;
+      padding: 16px 18px;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      background: var(--glass-bg);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--glass-shadow);
+      transition: all 0.25s;
+      animation: slideIn 0.25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .todo-item::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+      opacity: 0.6;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .todo-item:hover {
+      border-color: var(--glass-border-bright);
+      box-shadow: var(--glass-shadow-hover);
+      transform: translateY(-2px);
+      background: var(--glass-bg-strong);
+    }
+
+    .todo-item.completed {
+      background: rgba(134, 239, 172, 0.07);
+      border-color: rgba(134, 239, 172, 0.2);
+      opacity: 0.7;
+    }
+
+    .todo-item.completed::before {
+      background: linear-gradient(90deg, transparent, rgba(134,239,172,0.3), transparent);
+    }
+
+    .checkbox-wrap {
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+
+    .checkbox {
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border: 1.5px solid var(--glass-border-bright);
+      border-radius: 5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      position: relative;
+      background: rgba(255,255,255,0.08);
+    }
+
+    .checkbox:checked {
+      background: rgba(134, 239, 172, 0.25);
+      border-color: var(--done);
+      box-shadow: 0 0 12px rgba(134,239,172,0.4);
+    }
+
+    .checkbox:checked::after {
+      content: '✓';
+      position: absolute;
+      color: var(--done);
+      font-size: 11px;
+      font-weight: bold;
+      text-shadow: 0 0 6px rgba(134,239,172,0.8);
+    }
+
+    .todo-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .todo-title {
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 1.4;
+      transition: all 0.2s;
+      color: #fff;
+    }
+
+    .completed .todo-title {
+      text-decoration: line-through;
+      color: var(--done-muted);
+    }
+
+    .todo-desc {
+      font-size: 11px;
+      color: var(--ink-muted);
+      margin-top: 4px;
+      line-height: 1.5;
+    }
+
+    .todo-actions {
+      display: flex;
+      gap: 6px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .todo-item:hover .todo-actions {
+      opacity: 1;
+    }
+
+    .icon-btn {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid var(--glass-border);
+      border-radius: 7px;
+      padding: 4px 10px;
+      font-size: 11px;
+      cursor: pointer;
+      color: var(--ink-muted);
+      transition: all 0.2s;
+      font-family: 'DM Mono', monospace;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .icon-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(168,237,234,0.12);
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+
+    .icon-btn.del:hover {
+      border-color: rgba(255,100,100,0.6);
+      color: #ff6b6b;
+      background: rgba(0, 0, 0, 0.3);
+      box-shadow: 0 0 12px rgba(255,100,100,0.25);
+    }
+
+    /* Empty state */
+    .empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--ink-muted);
+    }
+
+    .empty-icon {
+      font-family: 'DM Serif Display', serif;
+      font-size: 52px;
+      margin-bottom: 12px;
+      font-style: italic;
+      color: rgba(255,255,255,0.15);
+    }
+
+    .empty p {
+      font-size: 12px;
+      letter-spacing: 0.05em;
+    }
+
+    /* Footer actions */
+    .footer-actions {
+      margin-top: 24px;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    /* Inline edit */
+    .edit-input {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-family: 'DM Mono', monospace;
+      font-size: 14px;
+      font-weight: 500;
+      color: #fff;
+      width: 100%;
+      outline: none;
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="eyebrow">✦ personal workspace</div>
+    <h1>TO<em>do</em>S</h1>
+    <div class="stats-bar">
+      <span><b id="total-count">0</b> total</span>
+      <span><b id="pending-count">0</b> pending</span>
+      <span><b id="done-count">0</b> done</span>
+    </div>
+  </header>
+
+  <div class="add-form">
+    <div class="input-row">
+      <input type="text" id="title-input" placeholder="what needs doing?" maxlength="120" />
+      <button class="btn btn-primary" onclick="addTodo()">+ add</button>
+    </div>
+    <input type="text" id="desc-input" class="input-row" placeholder="note (optional)..." maxlength="200" />
+  </div>
+
+  <div class="filters">
+    <button class="filter-btn active" data-filter="all" onclick="setFilter('all', this)">all</button>
+    <button class="filter-btn" data-filter="pending" onclick="setFilter('pending', this)">pending</button>
+    <button class="filter-btn" data-filter="completed" onclick="setFilter('completed', this)">done</button>
+  </div>
+
+  <div class="todo-list" id="todo-list"></div>
+
+  <div class="footer-actions" id="footer-actions" style="display:none">
+    <button class="btn btn-ghost" onclick="clearCompleted()">clear completed</button>
+  </div>
+</div>
+
+<script>
+  const API = '/api/todos';
+  let todos = [];
+  let filter = 'all';
+
+  async function load() {
+    const res = await fetch(API);
+    todos = await res.json();
+    render();
+  }
+
+  async function addTodo() {
+    const title = document.getElementById('title-input').value.trim();
+    const description = document.getElementById('desc-input').value.trim();
+    if (!title) return;
+    const res = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, description })
+    });
+    if (res.ok) {
+      document.getElementById('title-input').value = '';
+      document.getElementById('desc-input').value = '';
+      await load();
+    }
+  }
+
+  async function toggleTodo(id, completed) {
+    await fetch(`${API}/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ completed: !completed })
+    });
+    await load();
+  }
+
+  async function deleteTodo(id) {
+    await fetch(`${API}/${id}`, { method: 'DELETE' });
+    await load();
+  }
+
+  async function clearCompleted() {
+    await fetch(API, { method: 'DELETE' });
+    await load();
+  }
+
+  function setFilter(f, btn) {
+    filter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render();
+  }
+
+  function startEdit(id, currentTitle) {
+    const el = document.getElementById(`title-${id}`);
+    el.innerHTML = `<input class="edit-input" id="edit-${id}" value="${currentTitle.replace(/"/g,'&quot;')}" onblur="saveEdit('${id}')" onkeydown="if(event.key==='Enter')saveEdit('${id}');if(event.key==='Escape')load();" />`;
+    document.getElementById(`edit-${id}`).focus();
+  }
+
+  async function saveEdit(id) {
+    const input = document.getElementById(`edit-${id}`);
+    if (!input) return;
+    const newTitle = input.value.trim();
+    if (!newTitle) return;
+    await fetch(`${API}/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: newTitle })
+    });
+    await load();
+  }
+
+  function render() {
+    const list = document.getElementById('todo-list');
+    const visible = todos.filter(t =>
+      filter === 'all' ? true : filter === 'pending' ? !t.completed : t.completed
+    );
+    const pending = todos.filter(t => !t.completed).length;
+    const done = todos.filter(t => t.completed).length;
+    document.getElementById('total-count').textContent = todos.length;
+    document.getElementById('pending-count').textContent = pending;
+    document.getElementById('done-count').textContent = done;
+    document.getElementById('footer-actions').style.display = done > 0 ? 'flex' : 'none';
+
+    if (visible.length === 0) {
+      list.innerHTML = `<div class="empty"><div class="empty-icon">∅</div><p>${filter === 'completed' ? 'nothing done yet' : filter === 'pending' ? 'all caught up!' : 'add something above'}</p></div>`;
+      return;
+    }
+
+    list.innerHTML = visible.map(t => `
+      <div class="todo-item ${t.completed ? 'completed' : ''}">
+        <div class="checkbox-wrap">
+          <input type="checkbox" class="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTodo('${t.id}', ${t.completed})">
+        </div>
+        <div class="todo-content">
+          <div class="todo-title" id="title-${t.id}">${escHtml(t.title)}</div>
+          ${t.description ? `<div class="todo-desc">${escHtml(t.description)}</div>` : ''}
+        </div>
+        <div class="todo-actions">
+          ${!t.completed ? `<button class="icon-btn" onclick="startEdit('${t.id}', \`${t.title.replace(/`/g,'\\`')}\`)">edit</button>` : ''}
+          <button class="icon-btn del" onclick="deleteTodo('${t.id}')">del</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  document.getElementById('title-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addTodo();
+  });
+
+  load();
+</script>
+</body>
+</html>
